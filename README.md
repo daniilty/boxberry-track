@@ -2,13 +2,13 @@
 
 ## Installation
 
-```bash
+```console
 $ make build && make install
 ```
 
 ## Usage
 
-```bash
+```console
 $ boxberry-track <orderID>
 ```
 
