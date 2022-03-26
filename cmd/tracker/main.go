@@ -23,9 +23,13 @@ func run() error {
 	u := "https://boxberry.ru"
 	parsed, _ := url.ParseRequestURI(u)
 
+	if len(os.Args) != 2 {
+		return fmt.Errorf("please pass orderID as a param")
+	}
+
 	c := client.NewClient(parsed)
 
-	searchRes, err := c.Search(context.Background(), "0000175352124")
+	searchRes, err := c.Search(context.Background(), os.Args[1])
 	if err != nil {
 		return err
 	}
