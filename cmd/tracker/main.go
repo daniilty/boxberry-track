@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -23,52 +24,55 @@ func run() error {
 	u := "https://boxberry.ru"
 	parsed, _ := url.ParseRequestURI(u)
 
-	if len(os.Args) != 2 {
-		return fmt.Errorf("please pass orderID as a param")
+	if len(os.Args) < 2 {
+		return errors.New("usage: boxberry-track orderID1 orderID2 orderID3")
 	}
 
 	c := client.NewClient(parsed)
 
-	searchRes, err := c.Search(context.Background(), os.Args[1])
-	if err != nil {
-		return err
-	}
-
-	if len(searchRes) == 0 {
-		return fmt.Errorf("nothing found")
-	}
-
-	tracked := map[string]*statusSet{}
-
-	for _, r := range searchRes {
-		trackRes, err := c.Track(context.Background(), r.TrackID)
+	for _, arg := range os.Args[1:] {
+		searchRes, err := c.Search(context.Background(), arg)
 		if err != nil {
 			return err
 		}
 
-		if !trackRes.Result {
-			continue
+		if len(searchRes) == 0 {
+			return fmt.Errorf("nothing found")
 		}
 
-		ss := &statusSet{
-			history: make([]string, 0, len(trackRes.Statuses)),
-		}
-		for _, s := range trackRes.Statuses {
-			// if current status
-			// I fucking hate boxberry api so much
-			if s.Status == r.Status {
-				ss.current = s.Name
+		tracked := map[string]*statusSet{}
+
+		for _, r := range searchRes {
+			trackRes, err := c.Track(context.Background(), r.TrackID)
+			if err != nil {
+				return err
 			}
 
-			ss.history = append(ss.history, s.DateTime+": "+s.Name)
+			if !trackRes.Result {
+				continue
+			}
+
+			ss := &statusSet{
+				history: make([]string, 0, len(trackRes.Statuses)),
+			}
+			for _, s := range trackRes.Statuses {
+				// if current status
+				// I fucking hate boxberry api so much
+				if s.Status == r.Status {
+					ss.current = s.Name
+				}
+
+				ss.history = append(ss.history, s.DateTime+": "+s.Name)
+			}
+
+			tracked[r.OrderID] = ss
 		}
 
-		tracked[r.OrderID] = ss
-	}
+		for orderID, ss := range tracked {
+			fmt.Printf("Информация по заказу: %s\n", orderID)
+			fmt.Println(ss)
+		}
 
-	for orderID, ss := range tracked {
-		fmt.Printf("Информация по заказу: %s\n", orderID)
-		fmt.Println(ss)
 	}
 
 	return nil
