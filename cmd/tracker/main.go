@@ -30,47 +30,28 @@ func run() error {
 
 	c := client.NewClient(parsed)
 
-	for _, arg := range os.Args[1:] {
+	for i, arg := range os.Args[1:] {
 		searchRes, err := c.Search(context.Background(), arg)
 		if err != nil {
 			return err
 		}
 
-		if len(searchRes) == 0 {
+		if len(searchRes.ParcelWithStatuses) == 0 {
 			return fmt.Errorf("nothing found")
 		}
 
-		tracked := map[string]*statusSet{}
+		for j, p := range searchRes.ParcelWithStatuses {
+			fmt.Printf("%d:%d. Информация по отправлению %s:\n"+
+				"\tОжидаемая дата доставки: %s\n"+
+				"\tТекущий статус: %s\n",
+				i+1, j+1, p.OrderID, p.DeliveryDate, p.Status)
 
-		for _, r := range searchRes {
-			trackRes, err := c.Track(context.Background(), r.TrackID)
-			if err != nil {
-				return err
+			if len(p.Statuses) != 0 {
+				fmt.Println("\tИстория состояний:")
 			}
-
-			if !trackRes.Result {
-				continue
+			for n, s := range p.Statuses {
+				fmt.Printf("\t\t%d. %s: %s\n", n+1, s.DateTime, s.Name)
 			}
-
-			ss := &statusSet{
-				history: make([]string, 0, len(trackRes.Statuses)),
-			}
-			for _, s := range trackRes.Statuses {
-				// if current status
-				// I fucking hate boxberry api so much
-				if s.Status == r.Status {
-					ss.current = s.Name
-				}
-
-				ss.history = append(ss.history, s.DateTime+": "+s.Name)
-			}
-
-			tracked[r.OrderID] = ss
-		}
-
-		for orderID, ss := range tracked {
-			fmt.Printf("Информация по заказу: %s\n", orderID)
-			fmt.Println(ss)
 		}
 
 	}

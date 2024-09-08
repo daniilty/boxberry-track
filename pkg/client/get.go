@@ -11,37 +11,25 @@ import (
 	"github.com/daniilty/boxberry-track/pkg/response"
 )
 
-// SearchResult - search response.
-type SearchResult struct {
-	TrackID                string `json:"track_id"`
-	NameIM                 string `json:"NameIM"`
-	ProgramNumber          string `json:"ProgramNumber"`
-	OrderID                string `json:"order_id"`
-	Weight                 string `json:"Weight"`
-	DeliveryType           string `json:"delivery_type"`
-	ForingParcel           string `json:"ForingParcel"`
-	PointCity              string `json:"point_city"`
-	PointAddress           string `json:"point_address"`
-	PointPhone             string `json:"point_phone"`
-	Code                   string `json:"Code"`
-	DeliveryDate           string `json:"delivery_date"`
-	ImCode                 string `json:"imCode"`
-	IssueType              string `json:"issueType"`
-	PayType                string `json:"payType"`
-	IssueCondition         string `json:"issueCondition"`
-	Status                 string `json:"status"`
-	DeliveryIntervalStart  string `json:"deliveryIntervalStart"`
-	DeliveryIntervalFin    string `json:"deliveryIntervalFin"`
-	Sum                    string `json:"sum"`
-	ShouldChangeOdp        string `json:"shouldChangeOdp"`
-	AllowCDChange          string `json:"allowCDChange"`
-	AllowStorageDateChange string `json:"allowStorageDateChange"`
-}
-
-// TrackResult - track response.
-type TrackResult struct {
-	Statuses []*Status `json:"Statuses"`
-	Result   bool      `json:"result"`
+// ParcelWithStatuses - main entity.
+type ParcelWithStatuses struct {
+	NameIM         string    `json:"NameIM"`
+	ProgramNumber  string    `json:"ProgramNumber"`
+	OrderID        string    `json:"order_id"`
+	Weight         string    `json:"Weight"`
+	DeliveryType   string    `json:"delivery_type"`
+	PointAddress   string    `json:"point_address"`
+	Code           string    `json:"Code"`
+	DeliveryDate   string    `json:"delivery_date"`
+	ImCode         string    `json:"imCode"`
+	IssueType      string    `json:"issueType"`
+	PayType        string    `json:"payType"`
+	IssueCondition string    `json:"issueCondition"`
+	Status         string    `json:"status"`
+	StatusCode     string    `json:"status_code"`
+	Sum            string    `json:"sum"`
+	LastUpdateDate string    `json:"lastUpdateDate"`
+	Statuses       []*Status `json:"Statuses"`
 }
 
 // Status - track result status.
@@ -52,8 +40,25 @@ type Status struct {
 	Status          string `json:"status"`
 }
 
+// SearchResult - search response.
+type SearchResult struct {
+	ParcelWithStatuses []*ParcelWithStatuses `json:"parcel_with_statuses"`
+	Pager              struct {
+		TotalParcels   int `json:"total_parcels"`
+		CurrentParcels int `json:"current_parcels"`
+		Offset         int `json:"offset"`
+		Limit          int `json:"limit"`
+	} `json:"pager"`
+}
+
+// TrackResult - track response.
+type TrackResult struct {
+	Statuses []*Status `json:"Statuses"`
+	Result   bool      `json:"result"`
+}
+
 // Search - search by track number.
-func (c *client) Search(ctx context.Context, orderNum string) ([]*SearchResult, error) {
+func (c *client) Search(ctx context.Context, orderNum string) (*SearchResult, error) {
 	searchURL := *c.baseURL
 	searchURL.Path = path.Join(searchURL.Path, "api/v1/tracking/order/get")
 	searchURL.RawQuery = url.Values{
@@ -78,7 +83,7 @@ func (c *client) Search(ctx context.Context, orderNum string) ([]*SearchResult, 
 		return nil, fmt.Errorf("read response body: %w", err)
 	}
 
-	res := []*SearchResult{}
+	res := &SearchResult{}
 
 	err = json.Unmarshal(bb, &res)
 

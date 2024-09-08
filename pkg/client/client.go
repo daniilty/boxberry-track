@@ -7,7 +7,7 @@ import (
 )
 
 type Client interface {
-	Search(context.Context, string) ([]*SearchResult, error)
+	Search(context.Context, string) (*SearchResult, error)
 	Track(context.Context, string) (*TrackResult, error)
 }
 
